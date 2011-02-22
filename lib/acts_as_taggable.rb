@@ -63,9 +63,19 @@ module ActiveRecord #:nodoc:
         #   :exclude - Find models that are not tagged with the given tags
         #   :match_all - Find models that match all of the given tags, not just one
         #   :conditions - A piece of SQL conditions to add to the query
-        def find_tagged_with(*args)
-          options = find_options_for_find_tagged_with(*args)
-          options.blank? ? [] : find(:all, options)
+        def find_tagged_with(tag_names, options)
+          scope = self.joins(:tags)
+          if options[:exclude]
+            scope = scope.where(Tag.arel_table[:name].not_eq_all([tag_names].flatten))
+          elsif options[:match_all]
+            scope = scope.where(Tag.arel_table[:name].eq_all([tag_names].flatten))
+          else
+            scope = scope.where(Tag.arel_table[:name].eq_any([tag_names].flatten))
+          end
+          if options[:conditions]
+            scope = scope.where(options[:conditions])
+          end
+          scope
         end
         
         def find_options_for_find_tagged_with(tags, options = {})
